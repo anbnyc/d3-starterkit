@@ -4,7 +4,7 @@ d3.conventions = function(c){
   c.width  = c.width  || 900
   c.height = c.height || 500
 
-  c.margin = c.margin || {top: 20, right: 20, bottom: 20, left: 25}
+  c.margin = c.margin || {top: 20, right: 20, bottom: 20, left: 30}
 
   c.parentSel = c.parentSel || d3.select('body')
 
@@ -21,7 +21,6 @@ d3.conventions = function(c){
   c.y       = c.y       || d3.scale.linear().range([c.height, 0])
   c.rScale  = c.rScale  || d3.scale.sqrt().range([5, 20])
   c.line    = c.line    || d3.svg.line()
-
 
   c.xAxis = c.xAxis || d3.svg.axis().scale(c.x).orient("bottom");
   c.yAxis = c.yAxis || d3.svg.axis().scale(c.y).orient("left")

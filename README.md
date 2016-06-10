@@ -1,3 +1,9 @@
+# d3-nvpstools
+#### Forked and adapted from d3-starterkit
+Helper and utility functions to allow easy updating of graphs when data or window change. Separates function that initializes d3 objects (to be called once) from functions that depend on window size and functions that depend on data (to be called any time on change).
+
+Code structure also borrowed from examples in [d3angularjs](http://bl.ocks.org/vicapow/9716306).
+
 # d3-starterkit
 Snippets and conventions for starting a new d3 project without a fuss. Includes [d3](http://d3js.org/), [lodash](http://underscorejs.org/), [d3-jetpack](https://github.com/gka/d3-jetpack), some handy css and a few convenience functions. [Short example](http://bl.ocks.org/1wheel/3dfee2b74943398f0550) and [longer blog post](http://roadtolarissa.com/data-exploration/).
 
