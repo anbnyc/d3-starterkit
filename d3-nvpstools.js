@@ -1,3 +1,7 @@
+(function () {
+
+  'use strict';
+
 //adapted from d3.conventions and d3angularjs ebook
 d3.init = function(c){
   c = c || {};
@@ -30,18 +34,23 @@ d3.init = function(c){
   c.yAxisG = c.svg.append('g')
     .attr('class','y axis');
 
+  c.tip = c.parent.append('div.tooltip')
+    .style("position","absolute")
+    .style("visibility","hidden");
+
   return c;
 
-}
+};
 
 d3.resize = function(c){
+
+  c.tip.style("visibility","hidden");
 
   c.rootSVG
       .attr("width", c.width + c.margin.left + c.margin.right)
       .attr("height", c.height + c.margin.top + c.margin.bottom);
 
-  c.svg
-      .attr("transform", "translate(" + c.margin.left + "," + c.margin.top + ")");
+  c.svg.attr("transform", "translate(" + c.margin.left + "," + c.margin.top + ")");
 
   if(c.element === "rect"){
     c.x.rangeRoundBands([0,c.width], .1);
@@ -51,12 +60,11 @@ d3.resize = function(c){
 
   c.y.range([c.height, 0]);
 
-  c.xAxisG
-    .attr("transform", "translate(0," + c.height + ")");
+  c.xAxisG.attr("transform", "translate(0," + c.height + ")");
 
   return c;
 
-}
+};
 
 d3.update = function(c){
 
@@ -141,13 +149,31 @@ d3.update = function(c){
     .call(c.yAxis);
 
   c.groups
-    .on('click', function(d) { return d3.clickFilter(d); });
+    .on('click', function(d) {
+      if(c.tip.style("visibility") === "visible"){
+        c.tip.html('').style("visibility","hidden");
+      } else {
+        return d3.showTooltip(d,c);
+      }
+    });
 
   return c;
 
-}
+};
 
-d3.clickFilter = function(data){
+d3.showTooltip = function(data,c){
+  var arg = JSON.stringify(data);
+  c.tip
+    .html("<span>No Plan: "+data.pct+"%<br/>"+data.count+" students<br/></span>"+
+          "<span><button class='md-button' onclick='d3.filterGrid("+arg+")'>Apply Filter</button></span><br/>"+
+          "<span><button class='md-button'>View Profiles</button></span>")
+    .style("visibility","visible")
+    .style("left",(d3.event.pageX)+"px")
+    .style("top",(d3.event.pageY)+"px");
+};
+
+d3.filterGrid = function(data){
   console.log(data);
-  return data;
-}
+};
+
+}());
