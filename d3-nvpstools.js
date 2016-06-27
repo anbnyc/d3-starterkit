@@ -52,6 +52,7 @@ d3.palettes = function(palette){
 d3.init = function(c){
   c = c || {};
   c.data = c.data || [];
+  c.filter = c.filter || function(){};
 
   c.sort = function(a,b){
     if(c.rank){
@@ -182,12 +183,14 @@ d3.update = function(c){
             return "translate("+ c.x(d[c.dims.x]) +","+c.y(d.sum)+")";
           });
 
-        var temp = c.groups.selectAll(c.element)
+        var rects = c.groups.selectAll(c.element)
           .data(function(d){
             return d[c.dims.y[0]];
-          })
-          .enter()
-          .append(c.element)
+          });
+
+        rects.enter().append(c.element);
+
+        rects
           .attr("height", function(d){
             return c.y(d.y0) - c.y(d.y1);
           })
@@ -249,7 +252,6 @@ d3.update = function(c){
 };
 
 d3.showTooltip = function(data,c){
-  var arg = JSON.stringify(data);
   var header;
   if(c.stacked){
     header = data[c.dims.color[1]];
@@ -260,10 +262,9 @@ d3.showTooltip = function(data,c){
       header = data[c.dims.x];
     }
   }
+
   c.tip
-    .html("<span class='text header'>"+header+": "+data.pct+"%</span><br/><span class='text body'>"+data.count+" students<br/></span>"+
-          "<span><button class='md-button md-primary' onclick='d3.filterGrid("+arg+")'>Apply Filter</button></span><br/>"+
-          "<span><button class='md-button md-primary'>View Profiles</button></span>")
+    .html("<span class='text header'>"+header+": "+data.pct+"%</span><br/><span class='text body'>"+data.count+" students<br/></span>")
     .style("visibility","visible")
     .style("left", function(){
       if(c.width - d3.event.pageX > 100){
@@ -279,10 +280,22 @@ d3.showTooltip = function(data,c){
         return (d3.event.pageY - 120)+"px";
       }
     });
-};
 
-d3.filterGrid = function(data){
-  console.log(data);
+  c.tip
+    .append('button')
+    .attr('class','md-button md-primary')
+    .text('Apply Filter')
+    .on('click',function(){
+      c.filter(data);
+    });
+
+  c.tip
+    .append('button')
+    .attr('class','md-button md-primary')
+    .text('View Profiles')
+    .on('click',function(){
+      //c.filter(data);
+    });
 };
 
 }());
