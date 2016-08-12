@@ -58,9 +58,7 @@ d3.init = function(c){
     if(c.values && !c.stacked){
       return c.values[a[c.dims.color]].rank - c.values[b[c.dims.color]].rank;
     } else if (c.values && c.stacked) {
-      var bRank = b[c.dims.color[0]][0] ? b[c.dims.color[0]][0].count : 0;
-      var aRank = a[c.dims.color[0]][0] ? a[c.dims.color[0]][0].count : 0;
-      return bRank - aRank;
+      return c.values[a[c.dims.x]] - c.values[b[c.dims.x]];
     } else {
       return d3.ascending(a,b);
     }
@@ -161,6 +159,7 @@ d3.resize = function(c){
 };
 
 d3.update = function(c){
+
   c.data.sort(c.sort);
 
   c.y.domain([
@@ -321,7 +320,7 @@ d3.update = function(c){
 
   var narrowBar = c.element === "rect" && c.x.rangeBand() < 50;
   if(narrowBar){
-    c.margin.bottom = 80;
+    c.margin.bottom = 75;
   } else {
     c.margin.bottom = 50;
   }
@@ -330,7 +329,7 @@ d3.update = function(c){
     .selectAll("text")
       .attr("transform",function(){
         if(narrowBar){
-          return "translate(-13, 8) rotate(-90)";
+          return "translate(-5, 2) rotate(-20)";
         } else {
           return "";
         }
