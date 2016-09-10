@@ -55,12 +55,14 @@ d3.init = function(c){
   c.filter = c.filter || function(){};
 
   c.sort = function(a,b){
-    if(typeof c.values === "object" && !c.stacked){
+    if(c.element === "rect" && !c.stacked){
       return c.values[a[c.dims.color]].rank - c.values[b[c.dims.color]].rank;
-    } else if (typeof c.values === "object" && c.stacked) {
+    } else if (c.element === "rect" && c.stacked) {
       var bRank = b[c.dims.color[0]][0] ? b[c.dims.color[0]][0].count : 0;
       var aRank = a[c.dims.color[0]][0] ? a[c.dims.color[0]][0].count : 0;
       return bRank - aRank;
+    } else if (c.element === "path") {
+      return a[c.dims.x] - b[c.dims.x];
     } else {
       return d3.ascending(a,b);
     }
@@ -72,15 +74,13 @@ d3.init = function(c){
   c.height = c.height - c.margin.top - c.margin.bottom || 500;
   c.x       = c.x       || d3.scaleLinear().range([0, c.width]);
   c.y       = c.y       || d3.scaleLinear().range([c.height, 0]);
-  c.rScale  = c.rScale  || d3.scaleSqrt().range([5, 20]);
+  c.rScale  = c.rScale  || d3.scaleSqrt().range([2, 7]);
   c.line    = c.line    || d3.line();
   c.offset  = c.offset  || 5;
 
-  c.color = d3.scaleOrdinal()
-    .domain(_.keys(c.values))
-    .range(d3.palettes(c.values));
+  c.color = c.values ? d3.scaleOrdinal().domain(_.keys(c.values)).range(d3.palettes(c.values)) : d3.scaleOrdinal(d3.schemeCategory20c);
 
-  c.x = (c.element === "rect") ? d3.scaleBand() : c.x;
+  c.x = (c.element === "rect") ? d3.scaleBand() : (c.element === "path") ? d3.scaleTime() : c.x;
 
   c.xAxis = c.xAxis || d3.axisBottom(c.x);
   c.yAxis = c.yAxis || d3.axisLeft(c.y);
@@ -148,7 +148,7 @@ d3.update = function(c){
   var enter;
   var t = d3.transition().duration(1000);
 
-  c.data.sort(c.sort);
+  if(typeof c.values === "object") c.data.sort(c.sort);
 
   c.svg.select(".x.axis-label")
     .text(() => c.dims.xLabel ? c.dims.xLabel : _.startCase(c.dims.x));
@@ -161,8 +161,8 @@ d3.update = function(c){
     //scatterplot
     case "circle":
       c.x.domain([ 
-        .9*d3.min(c.data,d3.f(c.dims.x)),
-        d3.max(c.data,d3.f(c.dims.x))
+        .9*d3.min(c.data, d => d[c.dims.x]),
+        d3.max(c.data, d => d[c.dims.x])
       ]);
       c.y.domain([0, d3.max(c.data, d => d[c.dims.y])]);
 
@@ -180,7 +180,7 @@ d3.update = function(c){
 
       c.groups.selectAll(c.element)
         .data(c.data, d => d[c.dims.x]+"_"+d[c.dims.y]+"_"+d[c.dims.color])
-        .attr("r","5")
+        .attr("r", d => c.rScale(d[c.dims.r]))
         .attr("fill", d => c.color(d[c.dims.color]))
         .transition(t)
         .attr("cx", d => c.x(d[c.dims.x]))
@@ -191,7 +191,7 @@ d3.update = function(c){
         c.groups.selectAll("text")
           .data(c.data, d => d[c.dims.x]+"_"+d[c.dims.y]+"_"+d[c.dims.color])
           .attr("class","label")
-          .text(d3.f(c.dims.label))
+          .text(d => d[c.dims.label])
           .transition(t)
           .attr("x", d => c.x(d[c.dims.x]) + c.offset)
           .attr("y", d => -c.height + c.y(d[c.dims.y]) -c.offset);
@@ -201,7 +201,7 @@ d3.update = function(c){
 
     //bar chart
     case "rect":
-      c.x.domain(c.data.map(d3.f(c.dims.x)));
+      c.x.domain(c.data.map(d => d[c.dims.x]));
       c.x.paddingInner(.05).paddingOuter(.05);
 
       //stacked
@@ -211,7 +211,7 @@ d3.update = function(c){
           var y0 = 0;
           _.each(column.segments,function(segm){
             segm.y0 = y0;
-            // for stacked out of 100, change count -> pct
+            // for stacked of 100, change count -> pct and sum below
             y0 = segm.y1 = (segm.y0 + segm.count);
           });
         });
@@ -219,7 +219,7 @@ d3.update = function(c){
         c.y.domain([0,d3.max(c.data, d => d.sum)]);
 
         c.groups = c.svg.selectAll('g.'+c.element)
-          .data(c.data,d3.f(c.dims.x));
+          .data(c.data, d => d[c.dims.x]);
         c.groups.exit().remove();
 
         //enter and update groups
@@ -249,7 +249,7 @@ d3.update = function(c){
         c.y.domain([0,d3.max(c.data, d => d[c.dims.y])]);
 
         c.groups = c.svg.selectAll('g.'+c.element)
-          .data(c.data,d3.f(c.dims.x));
+          .data(c.data, d => d[c.dims.x]);
         c.groups.exit().remove();
 
         // enter and update groups
@@ -262,7 +262,7 @@ d3.update = function(c){
           .attr("transform", d => "translate("+ c.x(d[c.dims.x]) +","+c.height+")");
 
         c.groups.selectAll(c.element)
-          .data(c.data,d3.f(c.dims.x))
+          .data(c.data, d => d[c.dims.x])
           .attr("fill", d => c.color(d[c.dims.color]))
           .attr("width", c.x.bandwidth())
           .transition(t)
@@ -272,32 +272,131 @@ d3.update = function(c){
         //labels
         if(c.dims.label){
           c.groups.selectAll('text')
-            .data(c.data,d3.f(c.dims.x))
+            .data(c.data, d => d[c.dims.x])
             .attr("x", c.x.bandwidth()/2)
             .attr("class","label")
-            .text(d3.f(c.dims.label))
+            .text(d => d[c.dims.label])
             .transition(t)
             .attr("y", d => (-c.height + c.y(d[c.dims.y]) - c.offset));
         }
 
       }
+      break;
+    
+    case "path":
+
+      var parseTime = d3.timeParse(c.time);
+
+      c.data.forEach(function(line){
+        line.sort(c.sort);
+      });
+
+      c.x.domain([
+        d3.min(c.data,d => d3.min(d,g => parseTime(g[c.dims.x]))),
+        d3.max(c.data,d => d3.max(d,g => parseTime(g[c.dims.x])))
+      ]);
+
+      c.y.domain([
+        d3.min(c.data,d => d3.min(d,g => g[c.dims.y])),
+        d3.max(c.data,d => d3.max(d,g => g[c.dims.y]))
+      ]);
+
+      var line = d3.line()
+        .x(d => c.x(parseTime(d[c.dims.x])))
+        .y(d => c.y(d[c.dims.y]));
+
+      c.groups = c.svg.selectAll('.line')
+        .data(c.data);
+      c.groups.exit().remove();
+
+      enter = c.groups.enter()
+        .append(c.element+'.line');
+
+      c.groups = enter.merge(c.groups);
+
+      c.groups
+        .style("stroke", (d,i) => c.color(i))
+        .transition(t)
+        .attr("d", line);
+
+      break;
+
+    case "sankey":
+
+      if(c.data.nodes){
+
+        var sankey = d3.sankey()
+          .nodeWidth(24)
+          .nodePadding(8)
+          .size([c.width,c.height]);
+
+        var path = sankey.link();
+
+        sankey
+          .nodes(c.data.nodes)
+          .links(c.data.links)
+          .layout(32);
+
+        var link = c.svg.append("g")
+          .selectAll('.link')
+          .data(c.data.links);
+
+        link.exit().remove();
+
+        link
+          .enter()
+          .append("path")
+          .attr("class","link")
+          .attr("d",path)
+          .style("stroke-width",d => Math.max(1,d.dy))
+          .sort((a,b) => b.dy - a.dy);
+
+        var node = c.svg.append("g")
+          .selectAll(".node")
+          .data(c.data.nodes);
+
+        node.exit().remove();
+
+        node = node
+          .enter()
+          .append("g")
+          .attr("class","node")
+          .attr("transform", d => "translate("+d.x+","+d.y+")");
+
+        node.append("rect")
+          .attr("height", d => d.dy)
+          .attr("width",sankey.nodeWidth());
+
+        node.append("text")
+          .attr("x", d => d.x === 0 ? -d.dx : d.dx)
+          .attr("y", d => .5*d.dy)
+          .text(d => d.name.substring(d.name.indexOf("_")));
+
+      }
+
+      c.groups = c.svg.selectAll('rect');
+
+      break;
   }
 
-  var narrowBar = c.element === "rect" && c.x.range() < 50;
-  if(narrowBar){
-    c.margin.bottom = 80;
-  } else {
-    c.margin.bottom = 40;
+  if(c.element !== "sankey"){
+    c.xAxisG.call(c.xAxis);
+    c.yAxisG
+      .call(c.yAxis);
   }
-  c.xAxisG
-    .call(c.xAxis)
-    .selectAll("text")
-      .attr("transform", () => narrowBar ? "translate(-13, 8) rotate(-90)" : "")
-      .style("text-anchor", () => narrowBar ? "end" : "middle");
 
-  c.yAxisG
-    .call(c.yAxis);
+  //wrap bar labels
+  if(c.element === "rect"){
+    var cutoff = 10;
+    c.margin.bottom = c.x.bandwidth() < cutoff ? 80 : 40;
+    c.xAxisG
+      .selectAll("text")
+      .attr("transform", c.x.bandwidth() < cutoff ? "translate("+(-c.x.bandwidth()/2)+",8) rotate(-90)" : "")
+      .style("text-anchor", c.x.bandwidth() < cutoff ? "end" : "middle")
+      .call(wrap, c.x.bandwidth() < cutoff ? c.margin.bottom - 20 : c.x.bandwidth());
+  };
 
+  //tooltips
   c.groups.selectAll(c.element)
     .on('click', function(d) {
       d3.event.stopPropagation();
@@ -338,7 +437,34 @@ d3.showTooltip = function(data, c){
         +"<span class='text header'>"+data.pct+"%</span><br/>"
         +"<span class='text body'>"+data.count+" students<br/></span>";
     })
-    .style("visibility","visible");
+    .style("visibility","visible")
+    .style("left", d3.event.x)
+    .style("top", d3.event.y);
 };
 
-}());
+// https://bl.ocks.org/mbostock/7555321
+function wrap(text, width) {
+  text.each(function() {
+    var text = d3.select(this),
+        words = text.text().split(/\s+|-/).reverse(),
+        word,
+        line = [],
+        lineNumber = 0,
+        lineHeight = 1.1, // ems
+        y = text.attr("y"),
+        dy = parseFloat(text.attr("dy")),
+        tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+    while (word = words.pop()) {
+      line.push(word);
+      tspan.text(line.join(" "));
+      if (tspan.node().getComputedTextLength() > width) {
+        line.pop();
+        tspan.text(line.join(" "));
+        line = [word];
+        tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+      }
+    }
+  });
+};
+
+})();
