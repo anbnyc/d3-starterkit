@@ -17,7 +17,10 @@ d3.palettes = function(palette){
     darkred: '#800000',
     gray: '#7F7F7F',
     brown: '#804000',
-    lightgray: '#CFCFCF'
+    lightgray: '#CFCFCF',
+    purple: '#523080',
+    purple20: '#47266f',
+    purple40: '#381759'
   };
 
   var palettes = {
