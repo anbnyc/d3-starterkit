@@ -386,8 +386,8 @@ d3.update = function(c){
           .style("text-anchor", d => d.x === 0 ? 'end' : 'start')
           .style("alignment-baseline","middle")
           .text(d => {
-            var under = d.name.indexOf("_")
-            return d.name.substring(under+1,under+2).toUpperCase()+d.name.substring(under+2);
+            var under = d.name.indexOf("_");
+            return d.name.substring(under+1,under+2).toUpperCase()+d.name.substring(under+2)+": "+d.value;
           });
 
         node.on('mouseover',function(d){
