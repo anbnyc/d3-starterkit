@@ -72,7 +72,7 @@ d3.init = function(c){
   };
 
   //define scales and axes
-  c.margin = c.margin || {top: 20, right: 10, bottom: 40, left: 40};
+  c.margin = c.margin || {top: 20, right: 10, bottom: 40, left: 60};
   c.width = c.width - c.margin.left - c.margin.right || 600;
   c.height = c.height - c.margin.top - c.margin.bottom || 500;
   c.x       = c.x       || d3.scaleLinear().range([0, c.width]);
@@ -91,7 +91,7 @@ d3.init = function(c){
   //start drawing
   c.parent = c.parent || d3.select('body');
   c.rootSVG = c.rootSVG || c.parent.append('svg');
-  c.svg = c.svg || c.rootSVG.append('g');
+  c.svg = c.svg || c.rootSVG.append('g').attr('class','top-g');
 
   c.xAxisG = c.svg.append('g')
     .attr('class','x axis');
@@ -99,25 +99,28 @@ d3.init = function(c){
   c.yAxisG = c.svg.append('g')
     .attr('class','y axis');
 
-  c.svg.append("text")
-    .attr("class","x axis-label")
-    .text(() => c.dims.xLabel ? c.dims.xLabel : _.startCase(c.dims.x));
+  if(c.element !== 'sankey'){
 
-  c.svg.append("text")
-    .attr("class","y axis-label")
-    .attr("dy", "-4em")
-    .text(() => c.dims.yLabel ? c.dims.yLabel : _.startCase(c.dims.y));
+    c.svg.append("text")
+      .attr("class","x axis-label")
+      .text(() => c.dims.xLabel ? c.dims.xLabel : _.startCase(c.dims.x));
 
-  c.tip = c.parent.append('div.tooltip')
-    .style("position","absolute")
-    .style("visibility","hidden");
+    c.svg.append("text")
+      .attr("class","y axis-label")
+      .attr("dy", "-4em")
+      .text(() => c.element === 'sankey' ? '' : (c.dims.yLabel ? c.dims.yLabel : _.startCase(c.dims.y)));
+
+    c.tip = c.parent.append('div.tooltip')
+      .style("position","absolute")
+      .style("visibility","hidden");
+
+  }
 
   return c;
 
 };
 
 d3.resize = function(c){
-  c.tip.style("visibility","hidden");
   c.width = c.width - c.margin.left - c.margin.right;
   c.height = c.height - c.margin.top - c.margin.bottom;
 
@@ -127,13 +130,17 @@ d3.resize = function(c){
 
   c.svg.attr("transform", "translate(" + c.margin.left + "," + c.margin.top + ")");
 
-  c.svg.selectAll(".y.axis-label")
-    .style("text-anchor","middle")
-    .attr("transform", "translate("+(.6*c.margin.left)+","+(c.height/2)+") rotate(-90)");
+  if(c.element !== 'sankey'){
+    c.tip.style("visibility","hidden");
 
-  c.svg.selectAll(".x.axis-label")
-    .style("text-anchor","middle")
-    .attr("transform", "translate("+(c.width/2)+","+(c.height+c.margin.bottom - 3)+")");
+    c.svg.selectAll(".y.axis-label")
+      .style("text-anchor","middle")
+      .attr("transform", "translate("+(.6*c.margin.left)+","+(c.height/2)+") rotate(-90)");
+
+    c.svg.selectAll(".x.axis-label")
+      .style("text-anchor","middle")
+      .attr("transform", "translate("+(c.width/2)+","+(c.height+c.margin.bottom - 3)+")");
+  }
 
   c.x.range([0, c.width]);
   c.y.range([c.height, 0]);
@@ -328,10 +335,13 @@ d3.update = function(c){
 
       if(c.data.nodes){
 
+        d3.select('.top-g')
+          .attr('transform','translate('+.25*c.width+',20)');
+
         var sankey = d3.sankey()
-          .nodeWidth(24)
+          .nodeWidth(48)
           .nodePadding(8)
-          .size([c.width,c.height]);
+          .size([c.width - 350,c.height]);
 
         var path = sankey.link();
 
@@ -366,14 +376,54 @@ d3.update = function(c){
           .attr("class","node")
           .attr("transform", d => "translate("+d.x+","+d.y+")");
 
-        node.append("rect")
+        var rect = node.append("rect")
           .attr("height", d => d.dy)
           .attr("width",sankey.nodeWidth());
 
         node.append("text")
-          .attr("x", d => d.x === 0 ? -d.dx : d.dx)
+          .attr("x", d => d.x === 0 ? -5 : d.dx+5)
           .attr("y", d => .5*d.dy)
-          .text(d => d.name.substring(d.name.indexOf("_")));
+          .style("text-anchor", d => d.x === 0 ? 'end' : 'start')
+          .style("alignment-baseline","middle")
+          .text(d => {
+            var under = d.name.indexOf("_")
+            return d.name.substring(under+1,under+2).toUpperCase()+d.name.substring(under+2);
+          });
+
+        node.on('mouseover',function(d){
+
+          var nodeName = d.name;
+          d3.select(this).selectAll("rect")
+            .attr("fill",'#523080');
+
+          d3.select(this).selectAll("text")
+            .attr("color",'#523080')
+            .style("font-weight","bold");
+
+          d3.selectAll('.link')
+            .filter(function(d,i){
+              return d.source.name === nodeName || d.target.name === nodeName;
+            })
+            .attr("class","link highlight");
+        });
+
+        node.on('mouseleave',function(d){
+          
+          var nodeName = d.name;
+          d3.select(this).selectAll("rect")
+            .attr("fill",'#000000');
+
+          d3.select(this).selectAll("text")
+            .attr("color",'#000000')
+            .style("font-weight","normal");
+
+          d3.selectAll('.link')
+            .filter(function(d,i){
+              return d.source.name === nodeName || d.target.name === nodeName;
+            })
+            .attr("class","link");
+
+        });
 
       }
 
@@ -399,23 +449,25 @@ d3.update = function(c){
       .call(wrap, c.x.bandwidth() < cutoff ? c.margin.bottom - 20 : c.x.bandwidth());
   };
 
-  //tooltips
-  c.groups.selectAll(c.element)
-    .on('click', function(d) {
-      d3.event.stopPropagation();
-      if(c.tip.style("visibility") === "visible"){
-        c.tip.html('').style("visibility","hidden");
-      } else {
-        return d3.showTooltip(d,c);
-      }
-    });
+  if(c.element !== 'sankey'){
+    //tooltips
+    c.groups.selectAll(c.element)
+      .on('click', function(d) {
+        d3.event.stopPropagation();
+        if(c.tip.style("visibility") === "visible"){
+          c.tip.html('').style("visibility","hidden");
+        } else {
+          return d3.showTooltip(d,c);
+        }
+      });
 
-  c.rootSVG
-    .on('click', function() {
-      if(c.tip.style("visibility") === "visible"){
-        c.tip.html('').style("visibility","hidden");
-      }
-    });
+    c.rootSVG
+      .on('click', function() {
+        if(c.tip.style("visibility") === "visible"){
+          c.tip.html('').style("visibility","hidden");
+        }
+      });
+  }
 
 
   return c;
@@ -438,7 +490,7 @@ d3.showTooltip = function(data, c){
       }
       return header
         +"<span class='text header'>"+data.pct+"%</span><br/>"
-        +"<span class='text body'>"+data.count+" students<br/></span>";
+        +"<span class='text body'>"+data.count+" records<br/></span>";
     })
     .style("visibility","visible")
     .style("left", d3.event.x)
