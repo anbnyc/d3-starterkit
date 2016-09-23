@@ -110,9 +110,9 @@ d3.init = function(c){
       .attr("dy", "-4em")
       .text(() => c.element === 'sankey' ? '' : (c.dims.yLabel ? c.dims.yLabel : _.startCase(c.dims.y)));
 
-    c.tip = c.parent.append('div.tooltip')
-      .style("position","absolute")
-      .style("visibility","hidden");
+    // c.tip = c.parent.append('div.tooltip')
+    //   .style("position","absolute")
+    //   .style("visibility","hidden");
 
   }
 
@@ -449,25 +449,25 @@ d3.update = function(c){
       .call(wrap, c.x.bandwidth() < cutoff ? c.margin.bottom - 20 : c.x.bandwidth());
   };
 
-  if(c.element !== 'sankey'){
-    //tooltips
-    c.groups.selectAll(c.element)
-      .on('click', function(d) {
-        d3.event.stopPropagation();
-        if(c.tip.style("visibility") === "visible"){
-          c.tip.html('').style("visibility","hidden");
-        } else {
-          return d3.showTooltip(d,c);
-        }
-      });
+  // if(c.element !== 'sankey'){
+  //   //tooltips
+  //   c.groups.selectAll(c.element)
+  //     .on('click', function(d) {
+  //       d3.event.stopPropagation();
+  //       if(c.tip.style("visibility") === "visible"){
+  //         c.tip.html('').style("visibility","hidden");
+  //       } else {
+  //         return d3.showTooltip(d,c);
+  //       }
+  //     });
 
-    c.rootSVG
-      .on('click', function() {
-        if(c.tip.style("visibility") === "visible"){
-          c.tip.html('').style("visibility","hidden");
-        }
-      });
-  }
+  //   c.rootSVG
+  //     .on('click', function() {
+  //       if(c.tip.style("visibility") === "visible"){
+  //         c.tip.html('').style("visibility","hidden");
+  //       }
+  //     });
+  // }
 
 
   return c;
