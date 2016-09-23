@@ -111,7 +111,11 @@ d3.init = function(c){
       .text(() => c.element === 'sankey' ? '' : (c.dims.yLabel ? c.dims.yLabel : _.startCase(c.dims.y)));
 
     // c.tip = c.parent.append('div.tooltip')
+<<<<<<< HEAD
     //   .style("position","relative")
+=======
+    //   .style("position","absolute")
+>>>>>>> 9251043a3fcd88285a9222393520695e3bb1553b
     //   .style("visibility","hidden");
 
   }
